@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NERV // 任務管理 — Directive Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   NERV // SYNC DIVISION — Directive Operations
+   Surface: OPERATE — action affordances dominate, glanceable
+   Palette: NERV black + orange (#FF6A00), signal red, sync green
+   ============================================================ */
+:root{
+  --bg:        #07080a;
+  --panel:     #101216;
+  --panel-2:   #15181d;
+  --line:      #262a31;
+  --line-hot:  #3a4048;
+  --orange:    #ff6a00;
+  --orange-dim:#8a4a1f;
+  --red:       #ff2f3e;
+  --green:     #4dffa6;
+  --amber:     #ffb300;
+  --ink:       #e9e7e2;
+  --muted:     #8a8f98;
+  --faint:     #565c66;
+  --font-disp: 'Rajdhani','Arial Narrow',sans-serif;
+  --font-mono: 'Share Tech Mono',ui-monospace,'Courier New',monospace;
+  --notch: 14px;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ color-scheme:dark; }
+body{
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-disp);
+  font-weight:500;
+  letter-spacing:.02em;
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column;
+}
+/* faint tactical grid */
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,106,0,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,106,0,.035) 1px, transparent 1px);
+  background-size:44px 44px;
+}
+/* CRT scanlines + vignette */
+body::after{
+  content:""; position:fixed; inset:0; z-index:60; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.14) 2px 3px),
+    radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(0,0,0,.55) 100%);
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation:none!important; transition:none!important; }
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:relative; z-index:2;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:14px 22px;
+  background:linear-gradient(180deg, #0c0e11 0%, #0a0c0f 100%);
+  border-bottom:1px solid var(--line);
+}
+.topbar::after{
+  content:""; position:absolute; left:0; right:0; bottom:-4px; height:3px;
+  background:repeating-linear-gradient(90deg, var(--orange) 0 22px, transparent 22px 34px);
+  opacity:.55;
+}
+.brand{ display:flex; align-items:center; gap:14px; }
+.logo{ width:46px; height:46px; flex:none; filter:drop-shadow(0 0 6px rgba(255,106,0,.45)); }
+.wordmark{
+  font-weight:700; font-size:26px; line-height:1;
+  letter-spacing:.14em; color:var(--ink);
+  text-transform:uppercase;
+}
+.wordmark em{ font-style:normal; color:var(--orange); }
+.brand-sub{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.22em;
+  color:var(--muted); text-transform:uppercase; margin-top:4px;
+}
+.status-cluster{ display:flex; align-items:center; gap:18px; font-family:var(--font-mono); font-size:12px; }
+.clock{ color:var(--ink); letter-spacing:.12em; text-align:right; }
+.clock small{ display:block; color:var(--faint); font-size:9.5px; letter-spacing:.3em; }
+.magis{
+  display:flex; align-items:center; gap:8px;
+  border:1px solid var(--line); padding:7px 12px;
+  background:var(--panel);
+  clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  color:var(--muted); letter-spacing:.18em;
+}
+.led-live{ width:9px; height:9px; border-radius:50%; background:var(--green);
+  box-shadow:0 0 8px var(--green); animation:pulse 2.2s ease-in-out infinite; }
+@keyframes pulse{ 0%,100%{ opacity:1 } 50%{ opacity:.35 } }
+@media (max-width:640px){ .clock{ display:none } }
+
+/* ---------- layout ---------- */
+main{
+  position:relative; z-index:1;
+  flex:1; width:100%; max-width:1120px; margin:0 auto;
+  padding:26px 22px 40px;
+  display:grid; grid-template-columns:1fr 300px; gap:22px;
+}
+@media (max-width:900px){ main{ grid-template-columns:1fr; } }
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  clip-path:polygon(0 0, calc(100% - var(--notch)) 0, 100% var(--notch), 100% 100%, 0 100%);
+}
+.panel-title{
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.28em;
+  color:var(--muted); text-transform:uppercase;
+  padding:10px 14px; border-bottom:1px solid var(--line);
+  background:var(--panel-2);
+}
+.panel-title::before{ content:""; width:8px; height:8px; background:var(--orange);
+  margin-right:8px; transform:skewX(-18deg); flex:none; }
+.panel-title span:last-child{ margin-left:auto; }
+
+/* ---------- input deck ---------- */
+.input-deck{ display:flex; flex-direction:column; gap:18px; }
+.add-panel{ position:relative; padding:0; }
+.add-panel::before{ /* corner accent */
+  content:""; position:absolute; top:0; right:0; width:var(--notch); height:var(--notch);
+  background:var(--orange); opacity:.9;
+}
+.add-inner{ padding:16px 16px 18px; }
+.add-label{
+  display:block; font-family:var(--font-mono); font-size:10.5px;
+  letter-spacing:.26em; color:var(--orange); text-transform:uppercase; margin-bottom:10px;
+}
+.add-label small{ color:var(--faint); letter-spacing:.14em; margin-left:10px; }
+.add-row{ display:flex; gap:10px; }
+#todoInput{
+  flex:1; min-height:48px;
+  background:#0b0d10;
+  border:1px solid var(--line);
+  color:var(--ink);
+  font-family:var(--font-mono); font-size:14px; letter-spacing:.06em;
+  padding:0 14px;
+  clip-path:polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  outline:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+#todoInput::placeholder{ color:var(--faint); }
+#todoInput:focus{ border-color:var(--orange); box-shadow:0 0 0 1px var(--orange), 0 0 18px rgba(255,106,0,.25); }
+.deploy{
+  flex:none; min-height:48px; padding:0 20px;
+  background:var(--orange); color:#0a0b0d;
+  font-family:var(--font-disp); font-weight:700; font-size:15px;
+  letter-spacing:.2em; text-transform:uppercase;
+  border:none; cursor:pointer;
+  clip-path:polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 0);
+  transition:background .15s, transform .1s;
+}
+.deploy:hover{ background:#ff812a; }
+.deploy:active{ transform:translateY(1px); }
+.deploy:focus-visible, .purge:focus-visible, .led:focus-visible, .filter:focus-visible{
+  outline:2px solid var(--orange); outline-offset:2px;
+}
+@media (max-width:480px){
+  .add-row{ flex-direction:column; }
+  .deploy{ width:100%; }
+}
+
+/* ---------- filters ---------- */
+.filters{ display:flex; gap:0; border:1px solid var(--line); background:var(--panel);
+  clip-path:polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
+.filter{
+  flex:1; min-height:42px; background:transparent; border:none; cursor:pointer;
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.24em; color:var(--muted);
+  text-transform:uppercase; border-right:1px solid var(--line);
+  transition:color .15s, background .15s;
+}
+.filter:last-child{ border-right:none; }
+.filter b{ color:var(--faint); font-weight:400; margin-left:6px; }
+.filter:hover{ color:var(--ink); }
+.filter.active{
+  color:var(--orange);
+  background:linear-gradient(180deg, rgba(255,106,0,.14), rgba(255,106,0,.04));
+  text-shadow:0 0 12px rgba(255,106,0,.5);
+}
+
+/* ---------- task list ---------- */
+.tasklist{ list-style:none; display:flex; flex-direction:column; gap:8px; }
+.task{
+  display:grid; grid-template-columns:auto auto 1fr auto auto; align-items:center; gap:12px;
+  min-height:52px; padding:8px 14px;
+  background:var(--panel); border:1px solid var(--line);
+  clip-path:polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  transition:border-color .15s, background .2s, opacity .3s, transform .3s;
+  animation:task-in .25s ease-out;
+}
+@keyframes task-in{ from{ opacity:0; transform:translateY(5px) } to{ opacity:1; transform:none } }
+.task:hover{ border-color:var(--line-hot); }
+.task.is-done{ background:var(--panel-2); }
+.task.is-done .ttext{ text-decoration:line-through; color:var(--faint); }
+.task.removing{ opacity:0; transform:translateX(14px); }
+
+.tidx{ font-family:var(--font-mono); font-size:11px; color:var(--faint); letter-spacing:.1em; width:44px; flex:none; }
+.ttext{
+  font-size:16.5px; font-weight:600; letter-spacing:.03em; line-height:1.35;
+  overflow-wrap:anywhere; min-width:0;
+}
+.tstate{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.22em;
+  color:var(--amber); text-transform:uppercase;
+  border:1px solid rgba(255,179,0,.35); padding:4px 8px;
+  min-width:76px; text-align:center;
+  flex:none;
+}
+.task.is-done .tstate{ color:var(--green); border-color:rgba(77,255,166,.4); }
+
+.led{
+  width:44px; height:44px; flex:none; cursor:pointer;
+  background:#0b0d10; border:1px solid var(--line-hot);
+  display:grid; place-items:center;
+  transition:border-color .15s, box-shadow .15s;
+}
+.led i{ width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--orange); display:block;
+  transition:background .15s, border-color .15s, box-shadow .15s; }
+.led:hover{ border-color:var(--orange); }
+.led:hover i{ box-shadow:0 0 10px rgba(255,106,0,.6); }
+.task.is-done .led i{ background:var(--green); border-color:var(--green); box-shadow:0 0 10px var(--green); }
+
+.purge{
+  min-height:44px; padding:6px 12px; flex:none;
+  background:transparent; border:1px solid var(--line-hot);
+  color:var(--muted); font-family:var(--font-mono); font-size:10px;
+  letter-spacing:.18em; cursor:pointer; text-transform:uppercase;
+  transition:color .15s, border-color .15s, background .15s;
+}
+.purge:hover{ color:var(--red); border-color:var(--red);
+  background:rgba(255,47,62,.08); box-shadow:0 0 12px rgba(255,47,62,.25); }
+
+/* ---------- empty state ---------- */
+.empty{
+  margin-top:10px; padding:44px 20px; text-align:center;
+  border:1px dashed var(--line-hot); background:var(--panel);
+  clip-path:polygon(0 0, calc(100% - var(--notch)) 0, 100% var(--notch), 100% 100%, 0 100%);
+}
+.empty-kana{ font-size:34px; color:var(--orange-dim); letter-spacing:.5em; font-weight:700; }
+.empty-line{ font-family:var(--font-mono); font-size:11px; letter-spacing:.3em; color:var(--muted);
+  text-transform:uppercase; margin-top:12px; }
+.empty-line + .empty-line{ margin-top:6px; color:var(--faint); }
+
+/* ---------- side panels ---------- */
+.side{ display:flex; flex-direction:column; gap:14px; align-self:start; }
+.sync-body{ padding:18px 16px 20px; }
+.pct{
+  font-family:var(--font-mono); font-size:56px; font-weight:400; line-height:1;
+  color:var(--orange); text-shadow:0 0 18px rgba(255,106,0,.55);
+  letter-spacing:.04em;
+}
+.pct small{ font-size:20px; color:var(--muted); text-shadow:none; }
+.sync-caption{ font-family:var(--font-mono); font-size:10px; letter-spacing:.26em;
+  color:var(--muted); text-transform:uppercase; margin-top:6px; }
+.bar{
+  margin-top:16px; height:12px; background:#0b0d10;
+  border:1px solid var(--line); position:relative; overflow:hidden;
+  clip-path:polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+}
+.bar i{
+  position:absolute; inset:0; right:auto; width:0%;
+  background:repeating-linear-gradient(45deg, var(--orange) 0 8px, #d95c00 8px 16px);
+  transition:width .45s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 0 12px rgba(255,106,0,.5);
+}
+.sync-legend{ display:flex; justify-content:space-between; font-family:var(--font-mono);
+  font-size:10px; color:var(--faint); letter-spacing:.14em; margin-top:8px; }
+.sync-legend b{ color:var(--ink); font-weight:400; }
+
+.magi-list{ padding:6px 0; }
+.magi-row{
+  display:grid; grid-template-columns:110px 1fr auto; align-items:center; gap:10px;
+  padding:9px 16px; border-bottom:1px solid var(--line);
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.14em;
+}
+.magi-row:last-child{ border-bottom:none; }
+.magi-name{ color:var(--muted); }
+.magi-bars{ display:flex; gap:3px; }
+.magi-bars i{ width:7px; height:10px; background:var(--line-hot); }
+.magi-bars i.on{ background:var(--orange); box-shadow:0 0 6px rgba(255,106,0,.7); }
+.magi-verdict{ font-size:10px; letter-spacing:.2em; }
+.magi-verdict.agree{ color:var(--green); }
+.magi-verdict.affirm{ color:var(--amber); }
+.magi-verdict.neg{ color:var(--red); }
+.magi-verdict.stand{ color:var(--faint); }
+
+.threat-body{ padding:16px; }
+.threat-scale{ display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:12px 0 10px; }
+.threat-scale span{
+  height:10px; background:var(--line); position:relative;
+  clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+.threat-scale span.lit{ background:var(--red); box-shadow:0 0 8px rgba(255,47,62,.6); }
+.threat-scale span.lit:nth-child(-n+2){ background:var(--amber); box-shadow:0 0 8px rgba(255,179,0,.5); }
+.threat-label{ font-family:var(--font-mono); font-size:10px; letter-spacing:.22em;
+  color:var(--muted); text-transform:uppercase; }
+.threat-label b{ color:var(--ink); font-weight:400; margin-left:8px; }
+
+/* ---------- footer ---------- */
+footer{
+  position:relative; z-index:2;
+  margin-top:auto;
+  border-top:1px solid var(--line);
+  background:#0a0c0f;
+}
+.hazard{
+  height:14px;
+  background:repeating-linear-gradient(45deg, var(--orange) 0 18px, #111 18px 36px);
+  opacity:.5;
+}
+footer .foot-line{
+  max-width:1120px; margin:0 auto; padding:12px 22px;
+  display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  font-family:var(--font-mono); font-size:9.5px; letter-spacing:.26em;
+  color:var(--faint); text-transform:uppercase;
+}
+.foot-line em{ font-style:normal; color:var(--orange-dim); }
+
+/* glitch flicker on wordmark */
+.glitch{ animation:glitch 7s steps(1) infinite; }
+@keyframes glitch{
+  0%, 96.5%, 100%{ opacity:1; text-shadow:0 0 0 transparent; transform:none; }
+  97%{ opacity:.55; text-shadow:-2px 0 var(--red), 2px 0 rgba(0,255,255,.7); transform:translateX(1px); }
+  98%{ opacity:.9; text-shadow:2px 0 var(--red), -2px 0 rgba(0,255,255,.7); transform:translateX(-1px); }
+  99%{ opacity:.65; text-shadow:none; transform:none; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M32 5 L59 57 H5 Z" fill="none" stroke="#ff6a00" stroke-width="2.5"/>
+      <path d="M32 19 L45.5 50 H18.5 Z" fill="#ff6a00" opacity=".9"/>
+      <line x1="14" y1="30" x2="50" y2="30" stroke="#3a4048" stroke-width="1.5"/>
+    </svg>
+    <div>
+      <div class="wordmark glitch">NERV <em>//</em> Sync Division</div>
+      <div class="brand-sub">任務管理 · DIRECTIVE OPERATIONS TERMINAL</div>
+    </div>
+  </div>
+  <div class="status-cluster">
+    <div class="clock"><span id="clock">--:--:--</span><small>LOCAL TIME</small></div>
+    <div class="magis"><span class="led-live" aria-hidden="true"></span>MAGI · ONLINE</div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ OPERATE COLUMN ============ -->
+  <section class="input-deck">
+    <form id="addForm" class="add-panel panel" aria-label="Add directive">
+      <div class="add-inner">
+        <label class="add-label" for="todoInput">New Directive <small>指令を入力せよ</small></label>
+        <div class="add-row">
+          <input id="todoInput" type="text" maxlength="120" autocomplete="off"
+                 placeholder="ENTER DIRECTIVE…" aria-label="New directive text">
+          <button class="deploy" type="submit">Deploy</button>
+        </div>
+      </div>
+    </form>
+
+    <nav class="filters" aria-label="Filter directives">
+      <button class="filter active" data-filter="all">All <b id="cAll">0</b></button>
+      <button class="filter" data-filter="active">Active <b id="cActive">0</b></button>
+      <button class="filter" data-filter="done">Synced <b id="cDone">0</b></button>
+    </nav>
+
+    <ul id="list" class="tasklist" aria-label="Directives"></ul>
+
+    <div id="empty" class="empty" hidden>
+      <div class="empty-kana" id="emptyKana">待機</div>
+      <div class="empty-line" id="emptyLine1">No directives on record</div>
+      <div class="empty-line">Awaiting operator input — 指令なし</div>
+    </div>
+  </section>
+
+  <!-- ============ MONITOR COLUMN ============ -->
+  <aside class="side">
+    <section class="panel" aria-label="Sync rate">
+      <div class="panel-title">MAGI // Sync Rate <span>同期率</span></div>
+      <div class="sync-body">
+        <div class="pct" id="pct">--<small>%</small></div>
+        <div class="sync-caption" id="syncCaption">NO DATA</div>
+        <div class="bar" role="img" aria-label="Sync rate progress"><i id="bar"></i></div>
+        <div class="sync-legend"><span>SYNCED <b id="nDone">0</b></span><span>TOTAL <b id="nAll">0</b></span></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="MAGI vote">
+      <div class="panel-title">MAGI Vote <span>三位一体判定</span></div>
+      <div class="magi-list">
+        <div class="magi-row">
+          <span class="magi-name">MAGI-1 EOST</span>
+          <span class="magi-bars" data-bars></span>
+          <span class="magi-verdict" data-verdict>STANDBY</span>
+        </div>
+        <div class="magi-row">
+          <span class="magi-name">MAGI-2 BARDIL</span>
+          <span class="magi-bars" data-bars></span>
+          <span class="magi-verdict" data-verdict>STANDBY</span>
+        </div>
+        <div class="magi-row">
+          <span class="magi-name">MAGI-3 LITEL</span>
+          <span class="magi-bars" data-bars></span>
+          <span class="magi-verdict" data-verdict>STANDBY</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Workload">
+      <div class="panel-title">Threat Level <span>未完了指令</span></div>
+      <div class="threat-body">
+        <div class="threat-scale" id="threatScale">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="threat-label">STATUS<b id="threatLabel">CLEAR</b></div>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <div class="hazard" aria-hidden="true"></div>
+  <div class="foot-line">
+    <span>NERV // Mission Control · <em>CLASSIFIED</em></span>
+    <span>Data persisted locally — no transmission to Central Dogma</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var STORAGE_KEY = "nerv.directives.v1";
+  var todos = loadAll();
+  var filter = "all";
+
+  /* ---------- persistence ---------- */
+  function loadAll(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.filter(function(t){ return t && typeof t.text === "string"; }) : [];
+    }catch(e){ return []; }
+  }
+  function saveAll(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }catch(e){ /* storage full/denied: state still works in-memory */ }
+  }
+
+  /* ---------- dom refs ---------- */
+  var $list = document.getElementById("list");
+  var $empty = document.getElementById("empty");
+  var $emptyKana = document.getElementById("emptyKana");
+  var $emptyLine1 = document.getElementById("emptyLine1");
+  var $form = document.getElementById("addForm");
+  var $input = document.getElementById("todoInput");
+
+  /* ---------- clock ---------- */
+  var $clock = document.getElementById("clock");
+  function tick(){
+    var d = new Date();
+    var p = function(n){ return String(n).padStart(2,"0"); };
+    $clock.textContent = p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* ---------- render ---------- */
+  function visible(){
+    if (filter === "active") return todos.map(function(t,i){ return [t,i]; }).filter(function(x){ return !x[0].done; });
+    if (filter === "done")   return todos.map(function(t,i){ return [t,i]; }).filter(function(x){ return x[0].done; });
+    return todos.map(function(t,i){ return [t,i]; });
+  }
+
+  function render(){
+    var rows = visible();
+    $list.innerHTML = "";
+
+    rows.forEach(function(pair){
+      var t = pair[0], idx = pair[1];
+      var li = document.createElement("li");
+      li.className = "task" + (t.done ? " is-done" : "");
+      li.dataset.id = t.id;
+
+      var led = document.createElement("button");
+      led.className = "led"; led.type = "button";
+      led.setAttribute("role","checkbox");
+      led.setAttribute("aria-checked", t.done ? "true" : "false");
+      led.setAttribute("aria-label", "Toggle directive: " + t.text);
+      led.innerHTML = "<i></i>";
+      led.addEventListener("click", function(){ toggle(t.id); });
+
+      var tidx = document.createElement("span");
+      tidx.className = "tidx";
+      tidx.textContent = "#" + String(idx+1).padStart(3,"0");
+
+      var ttext = document.createElement("span");
+      ttext.className = "ttext";
+      ttext.textContent = t.text; // textContent: no HTML injection
+
+      var tstate = document.createElement("span");
+      tstate.className = "tstate";
+      tstate.textContent = t.done ? "SYNCED" : "STANDBY";
+
+      var purge = document.createElement("button");
+      purge.className = "purge"; purge.type = "button";
+      purge.setAttribute("aria-label","Purge directive: " + t.text);
+      purge.textContent = "消去 PURGE";
+      purge.addEventListener("click", function(){ purgeTask(t.id, li); });
+
+      li.appendChild(led); li.appendChild(tidx); li.appendChild(ttext);
+      li.appendChild(tstate); li.appendChild(purge);
+      $list.appendChild(li);
+    });
+
+    var shown = rows.length;
+    var emptyVisible = shown === 0;
+    $empty.hidden = !emptyVisible;
+    if (emptyVisible){
+      if (filter === "all"){ $emptyKana.textContent = "待機"; $emptyLine1.textContent = "No directives on record"; }
+      else if (filter === "active"){ $emptyKana.textContent = "完了"; $emptyLine1.textContent = "All directives synced"; }
+      else { $emptyKana.textContent = "無"; $emptyLine1.textContent = "No synced directives"; }
+    }
+    renderStats();
+  }
+
+  function renderStats(){
+    var total = todos.length;
+    var done = todos.filter(function(t){ return t.done; }).length;
+    var active = total - done;
+    var pct = total ? Math.round(done/total*100) : null;
+
+    document.getElementById("cAll").textContent = total;
+    document.getElementById("cActive").textContent = active;
+    document.getElementById("cDone").textContent = done;
+    document.getElementById("nAll").textContent = total;
+    document.getElementById("nDone").textContent = done;
+
+    var $pct = document.getElementById("pct");
+    var $cap = document.getElementById("syncCaption");
+    var $bar = document.getElementById("bar");
+    if (pct === null){
+      $pct.innerHTML = "--<small>%</small>";
+      $cap.textContent = "NO DATA — 指令なし";
+      $bar.style.width = "0%";
+    } else {
+      $pct.innerHTML = pct + "<small>%</small>";
+      $cap.textContent = pct === 100 ? "SYNC COMPLETE — 全指令完了" : "OPERATORS SYNCING";
+      $bar.style.width = pct + "%";
+    }
+
+    /* MAGI verdicts (deterministic off sync rate) */
+    var verdicts, barsOn, cls;
+    if (total === 0){ verdicts = ["STANDBY","STANDBY","STANDBY"]; barsOn = 0; cls = "stand"; }
+    else if (pct === 100){ verdicts = ["AGREEMENT","AGREEMENT","AGREEMENT"]; barsOn = 5; cls = "agree"; }
+    else if (pct >= 50){ verdicts = ["AFFIRMATIVE","AFFIRMATIVE","NEGATIVE"]; barsOn = 3; cls = "affirm"; }
+    else { verdicts = ["NEGATIVE","NEGATIVE","NEGATIVE"]; barsOn = 1; cls = "neg"; }
+
+    var rows = document.querySelectorAll(".magi-row");
+    rows.forEach(function(row, i){
+      var bars = row.querySelector("[data-bars]");
+      bars.innerHTML = "";
+      for (var b = 0; b < 5; b++){
+        var seg = document.createElement("i");
+        if (b < barsOn) seg.className = "on";
+        bars.appendChild(seg);
+      }
+      var v = row.querySelector("[data-verdict]");
+      v.textContent = verdicts[i];
+      v.className = "magi-verdict " + cls;
+    });
+
+    /* threat level from active workload */
+    var level = active === 0 ? 0 : active <= 2 ? 1 : active <= 5 ? 2 : active <= 9 ? 3 : 5;
+    var labels = ["CLEAR", "LOW", "ELEVATED", "HIGH", "CRITICAL"];
+    document.getElementById("threatLabel").textContent = labels[level];
+    document.querySelectorAll("#threatScale span").forEach(function(s, i){
+      s.classList.toggle("lit", i < level);
+    });
+  }
+
+  /* ---------- actions ---------- */
+  function add(text){
+    var t = text.trim();
+    if (!t) return;
+    todos.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), text: t, done: false });
+    saveAll(); render();
+  }
+  function toggle(id){
+    var t = todos.find(function(x){ return x.id === id; });
+    if (!t) return;
+    t.done = !t.done;
+    saveAll(); render();
+  }
+  function purgeTask(id, li){
+    li.classList.add("removing");
+    setTimeout(function(){
+      todos = todos.filter(function(x){ return x.id !== id; });
+      saveAll(); render();
+    }, 240);
+  }
+
+  /* ---------- wiring ---------- */
+  $form.addEventListener("submit", function(e){
+    e.preventDefault();
+    add($input.value);
+    $input.value = "";
+    $input.focus();
+  });
+  document.querySelectorAll(".filter").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      filter = btn.dataset.filter;
+      document.querySelectorAll(".filter").forEach(function(b){ b.classList.toggle("active", b === btn); });
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
