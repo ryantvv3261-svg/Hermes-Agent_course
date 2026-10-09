@@ -1,0 +1,51 @@
+name: Build & Deploy to GitHub Pages
+
+on:
+  # deploy automatically on every push to the default branch
+  push:
+    branches: [ main ]
+  # allow a manual run from the Actions tab
+  workflow_dispatch:
+  # Pages builds must happen under this permission
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# only one concurrent deploy at a time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate & build site
+        run: bash scripts/deploy.sh
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # the whole repo is the site (static HTML, no build dir)
+          path: .
+
+  # only run deploy-pages on pushes to the default branch (not PRs)
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

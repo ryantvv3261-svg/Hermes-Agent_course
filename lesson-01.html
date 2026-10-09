@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 01 — Agent Fundamentals</title>
+<style>
+  :root{--bg:#0c0d10;--panel:#15171c;--line:#2a2e37;--ink:#e8e6e1;--muted:#9aa0ab;--faint:#5f6572;--brand:#3fb2ff;--brand-2:#7a5cff;--mono:'SF Mono',ui-monospace,monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+  *{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:0 24px}
+  header{border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:56px;font-size:14px}
+  .mark{display:flex;align-items:center;gap:9px;font-weight:700}
+  .mark .dot{width:10px;height:10px;border-radius:3px;background:linear-gradient(135deg,var(--brand),var(--brand-2))}
+  .mark a{color:var(--ink);text-decoration:none}
+  .crumb{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .hero{padding:56px 0 28px}
+  .kicker{font-family:var(--mono);font-size:13px;color:var(--brand);letter-spacing:.14em;text-transform:uppercase}
+  h1{font-size:38px;font-weight:800;letter-spacing:-.02em;margin:14px 0 12px;line-height:1.1}
+  .lede{color:var(--muted);font-size:18px}
+  article{padding:20px 0 60px}
+  article h2{font-size:24px;font-weight:800;margin:34px 0 12px;letter-spacing:-.01em}
+  article p{color:var(--muted);margin:0 0 14px}
+  article p strong{color:var(--ink)}
+  article ul{color:var(--muted);margin:0 0 16px 22px}article li{margin-bottom:8px}
+  code{font-family:var(--mono);font-size:14px;background:var(--panel);border:1px solid var(--line);padding:2px 7px;border-radius:6px;color:var(--brand)}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;overflow:auto;margin:0 0 18px}
+  pre code{background:none;border:none;padding:0;color:var(--ink);font-size:13.5px;line-height:1.6}
+  .tip{background:#12211a;border:1px solid #1f3a2b;border-radius:12px;padding:16px 18px;margin:0 0 18px;font-size:14.5px;color:var(--muted)}
+  .tip b{color:#46d08a}
+  .nav{display:flex;justify-content:space-between;gap:14px;border-top:1px solid var(--line);padding:26px 0}
+  .nav a{flex:1;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--ink);text-decoration:none;transition:.15s}
+  .nav a:hover{border-color:var(--brand);text-decoration:none}
+  .nav .lbl{display:block;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .nav .next{text-align:left}.nav .prev{text-align:right}
+</style>
+</head>
+<body>
+<header><div class="wrap bar">
+  <div class="mark"><span class="dot"></span><a href="index.html">Hermes Agent · Course</a></div>
+  <div class="crumb">Module 01 / 05</div>
+</div></header>
+
+<div class="wrap hero">
+  <div class="kicker">Module 01</div>
+  <h1>Agent Fundamentals</h1>
+  <p class="lede">The core idea: how a tool-using LLM loop becomes an autonomous worker.</p>
+</div>
+
+<article class="wrap">
+  <h2>1. What is an agent?</h2>
+  <p>A large language model alone can only produce text. An <strong>agent</strong> is a model plus a loop that lets it <strong>call tools</strong> (run commands, read files, browse the web), observe the results, and act again — repeating until a task is done. Hermes Agent packages that loop with a rich, provider-agnostic tool layer.</p>
+
+  <h2>2. The tool-calling loop</h2>
+  <p>Every turn works the same way: send the conversation plus available tool schemas to the model; if it returns tool calls, execute them and feed the results back; when it stops calling tools, that final message is your answer.</p>
+  <pre><code>while budget remains:
+    response = model(messages, tools)
+    if response.tool_calls:
+        for call in response.tool_calls:
+            result = execute(call)
+            messages.append(tool_result(result))
+    else:
+        return response.content   # final answer</code></pre>
+  <div class="tip"><b>Try it:</b> run <code>hermes</code> in a terminal and ask it to create a file and read it back. Watch the tool calls it makes — that loop is the whole point of the course.</div>
+
+  <h2>3. What this module covers</h2>
+  <ul>
+    <li>The provider-agnostic model layer (any LLM, swap mid-workflow)</li>
+    <li>How tools are discovered and executed per turn</li>
+    <li>Session, context, and prompt-caching invariants</li>
+    <li>Your first end-to-end agent task</li>
+  </ul>
+</article>
+
+<div class="wrap nav">
+  <a class="prev" href="index.html"><span class="lbl">← Back</span>Course home</a>
+  <a class="next" href="lesson-02.html"><span class="lbl">Next →</span>Module 02 · Tool Calling &amp; MCP</a>
+</div>
+</body>
+</html>
